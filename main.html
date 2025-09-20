@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chrome小恐龙</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #f7f7f7; font-family: Arial; text-align: center; }
+        #game { width: 600px; height: 200px; margin: 0 auto; background: #fff; position: relative; overflow: hidden; border: 1px solid #ddd; }
+        #dino { width: 44px; height: 47px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 47"><path d="M13,13h4v4h-4zM23,13h4v4h-4zM10,20h24v4H10zM8,27h28v4H8zM6,34h32v4H6z" fill="%23535353"/></svg>') no-repeat; position: absolute; bottom: 0; left: 50px; }
+        .cactus { position: absolute; bottom: 0; right: -30px; }
+        #score { font-size: 20px; margin: 10px 0; color: #555; }
+        #gameOver { display: none; font-size: 28px; color: #ff4d4d; margin-top: 40px; font-weight: bold; }
+        #restart { padding: 10px 25px; font-size: 18px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        #restart:hover { background: #45a049; }
+        .ground { position: absolute; bottom: 0; width: 100%; height: 1px; background: #ccc; }
+    </style>
+</head>
+<body>
+    <h1>🦖 Chrome小恐龙</h1>
+    <div id="score">得分: 0</div>
+    <div id="game">
+        <div id="dino"></div>
+        <div class="ground"></div>
+    </div>
+    <div id="gameOver">💥 游戏结束！</div>
+    <button id="restart" onclick="restartGame()">▶ 重新开始</button>
+
+    <script>
+        const dino = document.getElementById('dino');
+        const game = document.getElementById('game');
+        const scoreEl = document.getElementById('score');
+        const gameOverEl = document.getElementById('gameOver');
+        
+        let isJumping = false;
+        let isGameOver = false;
+        let score = 0;
+        let gameSpeed = 3;
+        let cacti = [];
+        let frameCount = 0;
+
+        function jump() {
+            if (isJumping || isGameOver) return;
+            isJumping = true;
+            let jumpHeight = 0;
+            let up = true;
+            
+            const jumpInterval = setInterval(() => {
+                if (up) {
+                    jumpHeight += 5;
+                    if (jumpHeight >= 100) up = false;
+                } else {
+                    jumpHeight -= 5;
+                    if (jumpHeight <= 0) {
+                        clearInterval(jumpInterval);
+                        isJumping = false;
+                        jumpHeight = 0;
+                    }
+                }
+                dino.style.bottom = jumpHeight + 'px';
+            }, 20);
+        }
+
+        function createCactus() {
+            if (isGameOver) return;
+            const cactus = document.createElement('div');
+            cactus.classList.add('cactus');
+            cactus.innerHTML = '<svg width="20" height="40" viewBox="0 0 20 40"><path d="M5,0v30h10V0H5z M7,2h6v26H7V2z" fill="green"/><path d="M10,30v10" stroke="green" stroke-width="2"/></svg>';
+            game.appendChild(cactus);
+            cacti.push({
+                element: cactus,
+                x: game.offsetWidth,
+                width: 20,
+                height: 40
+            });
+        }
+
+        function updateGame() {
+            if (isGameOver) return;
+            
+            frameCount++;
+            if (frameCount % 100 === 0) {
+                createCactus();
+                gameSpeed += 0.1;
+                score++;
+                scoreEl.textContent = `得分: ${score}`;
+            }
+
+            for (let i = cacti.length - 1; i >= 0; i--) {
+                const cactus = cacti[i];
+                cactus.x -= gameSpeed;
+                cactus.element.style.right = (game.offsetWidth - cactus.x) + 'px';
+                
+                // 碰撞检测
+                if (
+                    cactus.x < 94 && cactus.x > 50 &&
+                    parseInt(dino.style.bottom || 0) < 40
+                ) {
+                    gameOver();
+                    return;
+                }
+                
+                if (cactus.x < -20) {
+                    game.removeChild(cactus.element);
+                    cacti.splice(i, 1);
+                }
+            }
+            
+            requestAnimationFrame(updateGame);
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            gameOverEl.style.display = 'block';
+        }
+
+        function restartGame() {
+            isGameOver = false;
+            score = 0;
+            gameSpeed = 3;
+            frameCount = 0;
+            scoreEl.textContent = '得分: 0';
+            gameOverEl.style.display = 'none';
+            
+            cacti.forEach(c => game.removeChild(c.element));
+            cacti = [];
+            
+            dino.style.bottom = '0px';
+            updateGame();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (isGameOver) restartGame();
+                else jump();
+            }
+        });
+
+        updateGame();
+    </script>
+</body>
+</html>
